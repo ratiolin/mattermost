@@ -1,0 +1,41 @@
+services:
+        db:
+                image: postgres:14
+                container_name: mm-db
+                restart: unless-stopped
+                volumes:
+                        - ./data/db:/var/lib/postgresql/data
+                environment:
+                        POSTGRES_USER: mmuser
+                        POSTGRES_PASSWORD: mmstrongpassword
+                        POSTGRES_DB: mattermost
+                   
+        mattermost:
+                image: mattermost/mattermost-team-edition:11.2.1
+                container_name: mattermost
+                restart: unless-stopped
+                depends_on:
+                         - db
+                volumes:
+                         - ./data/mm:/mattermost/data
+                environment:
+                         MM_SQLSETTINGS_DRIVERNAME: postgres
+                         MM_SQLSETTINGS_DATASOURCE: postgres://mmuser:mmstrongpassword@db:5432/mattermost?sslmode=disable
+                         MM_SERVICESETTINGS_SITEURL: https://chat.metratio.com
+                         MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENS: "true"
+                         MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENSFORBOTS: "true"
+                expose:
+                         - "8065"
+
+        nginx:
+                image: nginx:stable
+                container_name: mm-nginx
+                restart: unless-stopped
+                ports:
+                         - "443:443"
+                volumes:
+                         - ./nginx/conf.d:/etc/nginx/conf.d
+                         - ./nginx/ssl:/etc/nginx/ssl
+                depends_on:
+                         - mattermost
+
